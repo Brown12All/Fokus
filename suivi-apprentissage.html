@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Mon suivi d'apprentissage</title>
+<style>
+:root{--bg:#EEF2F7;--card:#fff;--ink:#16233A;--mut:#5B6B82;--line:#D8E0EB;--m:#3B4CCA;--p:#0E8A6B;--soft:#E4EAF3;--danger:#B3261E;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1726;--card:#18233A;--ink:#E8EEF8;--mut:#98A6BC;--line:#2A3854;--m:#8C9BFF;--p:#4FD1A5;--soft:#223152;--danger:#FF8A80}}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 "Avenir Next","Segoe UI",system-ui,sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+header{padding:20px 16px 8px;max-width:640px;margin:0 auto}
+h1{margin:0;font-size:1.6rem;letter-spacing:-.02em}
+#sub{margin:2px 0 0;color:var(--mut);font-size:.95rem}
+main{max-width:640px;margin:0 auto;padding:8px 16px 16px;display:grid;gap:14px}
+h2{margin:0 0 10px;font-size:1.05rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big{font-size:2rem;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.sm{margin:2px 0 0;color:var(--mut);font-size:.88rem}
+.bar{height:8px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--c,var(--m));border-radius:99px}
+.mc{--c:var(--m)}.pc{--c:var(--p)}
+.mt{color:var(--m)}.pt{color:var(--p)}
+.chart{display:flex;gap:6px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.track{height:110px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.stack{width:70%;max-width:30px;display:flex;flex-direction:column;border-radius:6px 6px 0 0;overflow:hidden;background:var(--soft)}
+.stack i{display:block}.stack .m{background:var(--m)}.stack .p{background:var(--p)}
+.v{font-size:.72rem;color:var(--mut);height:16px}
+.l{font-size:.75rem;color:var(--mut);margin-top:4px;white-space:nowrap}
+.l.now{color:var(--ink);font-weight:700}
+.leg{display:flex;gap:14px;font-size:.82rem;color:var(--mut);margin-top:10px}
+.leg b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input,select,button{font:inherit;font-size:16px;color:inherit}
+input,select{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+input[type=text],input[type=number]{flex:1 1 140px}
+button{cursor:pointer}
+.btn{background:var(--ink);color:var(--card);border:0;border-radius:10px;padding:10px 16px;font-weight:600}
+.btn.m{background:var(--m);color:#fff}.btn.p{background:var(--p);color:#fff}
+.link{background:none;border:0;padding:6px 0;color:var(--mut);text-decoration:underline;font-size:.88rem}
+.link.danger{color:var(--danger)}
+.head{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;text-align:left;font-weight:700;font-size:1.05rem}
+.head span:last-child{font-variant-numeric:tabular-nums}
+ul{list-style:none;margin:10px 0;padding:0;display:grid;gap:6px}
+li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
+li label{display:flex;align-items:center;gap:10px;flex:1 1 150px;min-width:0}
+li input[type=checkbox]{width:22px;height:22px;accent-color:var(--c,var(--m));flex:none}
+li.done label span{text-decoration:line-through;color:var(--mut)}
+li .d{padding:6px 8px;font-size:14px}
+.x{background:none;border:0;font-size:1.4rem;line-height:1;color:var(--mut);padding:4px 8px}
+.empty{color:var(--mut);margin:0}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{background:none;border:0;padding:14px 4px;font-size:.8rem;color:var(--mut);border-top:3px solid transparent}
+nav button[aria-current=page]{color:var(--ink);font-weight:700;border-top-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--m);outline-offset:2px}
+</style>
+</head>
+<body>
+<header><h1 id="t"></h1><p id="sub"></p></header>
+<main id="app"></main>
+<nav id="nav"></nav>
+<input type="file" id="imp" accept="application/json" hidden>
+<script>
+const KEY='suivi-apprentissage-v1';
+let S=load(),ui={tab:'dash',open:{},cid:''};
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(Array.isArray(d.courses)&&Array.isArray(d.logs))return d}}catch(e){}return{courses:[],logs:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const uid=()=>Math.random().toString(36).slice(2,10);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>ds(new Date());
+const parse=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const addDays=(d,n)=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()+n);return x};
+const monday=d=>addDays(d,-((d.getDay()+6)%7));
+const fmtDay=s=>parse(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+const fmtH=m=>{const h=Math.floor(m/60),r=m%60;return h?h+' h'+(r?' '+pad(r):''):r+' min'};
+const NAMES={maths:'Maths',prog:'Programmation'};
+const TITLES={dash:'Tableau de bord',maths:'Maths',prog:'Programmation',today:"Aujourd'hui"};
+const sum=(a,b,cat)=>S.logs.filter(l=>l.date>=a&&l.date<=b&&l.cat===cat).reduce((t,l)=>t+l.min,0);
+const pct=c=>c.chapters.length?Math.round(100*c.chapters.filter(h=>h.done).length/c.chapters.length):0;
+function catStat(cat){let t=0,d=0;S.courses.filter(c=>c.cat===cat).forEach(c=>{t+=c.chapters.length;d+=c.chapters.filter(h=>h.done).length});return{t,d,p:t?Math.round(100*d/t):0}}
+function streak(){const days=new Set(S.logs.map(l=>l.date));let d=new Date();if(!days.has(ds(d)))d=addDays(d,-1);let n=0;while(days.has(ds(d))){n++;d=addDays(d,-1)}return n}
+function chart(items){const max=Math.max(60,...items.map(i=>i.m+i.p));
+ return '<div class="chart">'+items.map(i=>{const tot=i.m+i.p,h=Math.round(tot/max*110);
+ return `<div class="col"><span class="v">${tot?(tot/60).toFixed(1).replace('.0','').replace('.',',')+' h':''}</span><div class="track"><div class="stack" style="height:${h||2}px">${i.p?`<i class="p" style="flex:${i.p}"></i>`:''}${i.m?`<i class="m" style="flex:${i.m}"></i>`:''}</div></div><span class="l${i.now?' now':''}">${i.l}</span></div>`}).join('')+'</div><div class="leg"><span><b style="background:var(--m)"></b>Maths</span><span><b style="background:var(--p)"></b>Programmation</span></div>'}
+function remind(){if(!S.courses.length)return'';const n=S.lastExport?Math.round((parse(today())-parse(S.lastExport))/864e5):null;if(n!==null&&n<7)return'';return `<section class="card" style="border-color:var(--ink)" role="alert"><h2>Pense à sauvegarder</h2><p class="sm" style="margin-bottom:10px">${n===null?"Tu n'as pas encore exporté tes données.":'Dernière sauvegarde il y a '+n+' jours.'} Exporte-les chaque semaine.</p><button class="btn" type="button" data-a="export">Exporter maintenant</button></section>`}
+function dash(){
+ const mon=monday(new Date()),L=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],td=today();
+ const days=L.map((l,i)=>{const k=ds(addDays(mon,i));return{l,now:k===td,m:sum(k,k,'maths'),p:sum(k,k,'prog')}});
+ const weeks=[5,4,3,2,1,0].map(i=>{const a=addDays(mon,-7*i);return{l:fmtDay(ds(a)),now:i===0,m:sum(ds(a),ds(addDays(a,6)),'maths'),p:sum(ds(a),ds(addDays(a,6)),'prog')}});
+ const wk=days.reduce((t,d)=>t+d.m+d.p,0),M=catStat('maths'),P=catStat('prog');
+ return remind()+`<div class="row"><section class="card mc"><div class="big mt">${M.p} %</div><p class="sm">Maths · ${M.d}/${M.t} chapitres</p><div class="bar"><i style="width:${M.p}%"></i></div></section>
+ <section class="card pc"><div class="big pt">${P.p} %</div><p class="sm">Programmation · ${P.d}/${P.t} chapitres</p><div class="bar"><i style="width:${P.p}%"></i></div></section></div>
+ <div class="row"><section class="card"><div class="big">${fmtH(wk)}</div><p class="sm">étudiées cette semaine</p></section>
+ <section class="card"><div class="big">${streak()} j</div><p class="sm">de présence d'affilée</p></section></div>
+ <section class="card"><h2>Cette semaine, jour par jour</h2>${chart(days)}</section>
+ <section class="card"><h2>Les 6 dernières semaines</h2>${chart(weeks)}</section>
+ <section class="card"><h2>Sauvegarde</h2><p class="sm" style="margin-bottom:10px">${S.lastExport?'Dernière sauvegarde : '+fmtDay(S.lastExport)+'. ':''}Tes données restent dans ce navigateur. Exporte-les pour ne rien perdre si tu changes de téléphone ou d'adresse.</p><form><button class="btn" type="button" data-a="export">Exporter mes données</button><button class="btn" type="button" data-a="import">Importer</button></form></section>`}
+function catPage(cat){
+ const cs=S.courses.filter(c=>c.cat===cat),k=cat==='maths'?'m':'p';
+ return `<section class="card"><form data-f="course" data-cat="${cat}"><input type="text" name="name" placeholder="Nom du cours" required maxlength="60"><button class="btn ${k}">Ajouter le cours</button></form></section>`+
+ (cs.length?cs.map(c=>{const open=ui.open[c.id],p=pct(c),done=c.chapters.filter(h=>h.done).length;
+ return `<article class="card ${k==='m'?'mc':'pc'}"><button class="head" data-a="open" data-c="${c.id}" aria-expanded="${!!open}"><span>${esc(c.name)}</span><span>${p} %</span></button><div class="bar"><i style="width:${p}%"></i></div><p class="sm">${done}/${c.chapters.length} chapitres terminés</p>`+
+ (open?`<ul>${c.chapters.map(h=>`<li class="${h.done?'done':''}"><label><input type="checkbox" data-a="tog" data-c="${c.id}" data-h="${h.id}" ${h.done?'checked':''}><span>${esc(h.title)}</span></label><input class="d" type="date" data-a="day" data-c="${c.id}" data-h="${h.id}" value="${h.day||''}" aria-label="Jour prévu"><button class="x" data-a="delh" data-c="${c.id}" data-h="${h.id}" aria-label="Supprimer le chapitre">×</button></li>`).join('')||'<li><p class="empty">Aucun chapitre. Ajoute le premier ci-dessous.</p></li>'}</ul>
+ <form data-f="chapter" data-c="${c.id}"><input type="text" name="title" placeholder="Nouveau chapitre" required maxlength="80"><input type="date" name="day" aria-label="Jour prévu"><button class="btn ${k}">Ajouter</button></form>
+ <button class="link danger" data-a="delc" data-c="${c.id}">Supprimer ce cours</button>`:'')+`</article>`}).join(''):`<p class="empty">Aucun cours de ${NAMES[cat].toLowerCase()} pour l'instant. Ajoute ton premier cours ci-dessus.</p>`)}
+function todayPage(){
+ const td=today(),logs=S.logs.filter(l=>l.date===td),tot=logs.reduce((t,l)=>t+l.min,0);
+ const opts=['maths','prog'].map(cat=>{const cs=S.courses.filter(c=>c.cat===cat);return cs.length?`<optgroup label="${NAMES[cat]}">${cs.map(c=>`<option value="${c.id}" ${c.id===ui.cid?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>`:''}).join('');
+ const plan=S.courses.flatMap(c=>c.chapters.filter(h=>h.day===td).map(h=>({c,h})));
+ return `<section class="card"><h2>Marquer ma présence</h2>`+(opts?`<form data-f="log"><select name="cid" aria-label="Cours">${opts}</select><input type="number" name="min" value="60" min="5" max="720" step="5" aria-label="Minutes étudiées" style="flex:0 1 90px"><button class="btn">Marquer ma présence</button></form><p class="sm" style="margin-top:8px">Durée en minutes.</p>`:`<p class="empty">Ajoute d'abord un cours dans Maths ou Programmation.</p>`)+`</section>
+ <section class="card"><h2>Étudié aujourd'hui · ${fmtH(tot)}</h2>`+(logs.length?`<ul>${logs.map(l=>{const c=S.courses.find(c=>c.id===l.cid);return `<li><span style="flex:1" class="${l.cat==='maths'?'mt':'pt'}">${c?esc(c.name):'Cours supprimé'}</span><span>${fmtH(l.min)}</span><button class="x" data-a="dell" data-l="${l.id}" aria-label="Supprimer cette présence">×</button></li>`}).join('')}</ul>`:'<p class="empty">Pas encore de présence aujourd\'hui.</p>')+`</section>
+ <section class="card"><h2>Chapitres prévus aujourd'hui</h2>`+(plan.length?`<ul>${plan.map(({c,h})=>`<li class="${h.done?'done':''}" style="--c:var(--${c.cat==='maths'?'m':'p'})"><label><input type="checkbox" data-a="tog" data-c="${c.id}" data-h="${h.id}" ${h.done?'checked':''}><span>${esc(h.title)} <small class="sm">· ${esc(c.name)}</small></span></label></li>`).join('')}</ul>`:'<p class="empty">Aucun chapitre planifié pour aujourd\'hui. Choisis un jour dans la page d\'un cours.</p>')+`</section>`}
+function render(){
+ document.getElementById('t').textContent=TITLES[ui.tab];
+ document.getElementById('sub').textContent=ui.tab==='today'?new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}):ui.tab==='dash'?'Ta progression, calculée automatiquement.':'';
+ document.getElementById('app').innerHTML=ui.tab==='dash'?dash():ui.tab==='today'?todayPage():catPage(ui.tab);
+ document.getElementById('nav').innerHTML=Object.keys(TITLES).map(k=>`<button data-a="tab" data-t="${k}" ${k===ui.tab?'aria-current="page"':''}>${k==='dash'?'Tableau':TITLES[k]}</button>`).join('')}
+const course=id=>S.courses.find(c=>c.id===id);
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a,c=course(b.dataset.c);
+ if(a==='tab'){ui.tab=b.dataset.t;window.scrollTo(0,0)}
+ else if(a==='open')ui.open[b.dataset.c]=!ui.open[b.dataset.c];
+ else if(a==='delc'){if(!confirm('Supprimer ce cours et ses chapitres ?'))return;S.courses=S.courses.filter(x=>x.id!==b.dataset.c);save()}
+ else if(a==='delh'){c.chapters=c.chapters.filter(h=>h.id!==b.dataset.h);save()}
+ else if(a==='dell'){S.logs=S.logs.filter(l=>l.id!==b.dataset.l);save()}
+ else if(a==='export'){S.lastExport=today();save();const u=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'})),x=document.createElement('a');x.href=u;x.download='suivi-apprentissage-'+today()+'.json';x.click();URL.revokeObjectURL(u)}
+ else if(a==='import'){document.getElementById('imp').click();return}
+ render()});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='imp'){const f=t.files[0];if(!f)return;f.text().then(x=>{try{const d=JSON.parse(x);if(!Array.isArray(d.courses)||!Array.isArray(d.logs))throw 0;if(!confirm('Remplacer tes données actuelles par cette sauvegarde ?'))return;S=d;save();render()}catch(_){alert("Ce fichier n'est pas une sauvegarde valide.")}});t.value='';return}
+ const a=t.dataset.a;if(a!=='tog'&&a!=='day')return;const c=course(t.dataset.c),h=c&&c.chapters.find(h=>h.id===t.dataset.h);if(!h)return;
+ if(a==='tog')h.done=t.checked;else h.day=t.value;save();render()});
+document.addEventListener('submit',e=>{e.preventDefault();const f=e.target,d=f.dataset.f,v=new FormData(f);
+ if(d==='course'){const id=uid();S.courses.push({id,cat:f.dataset.cat,name:v.get('name').trim(),chapters:[]});ui.open[id]=true}
+ else if(d==='chapter'){const c=course(f.dataset.c);c.chapters.push({id:uid(),title:v.get('title').trim(),day:v.get('day')||'',done:false})}
+ else if(d==='log'){const c=course(v.get('cid'));if(!c)return;ui.cid=c.id;S.logs.push({id:uid(),date:today(),cid:c.id,cat:c.cat,min:Math.max(5,parseInt(v.get('min'),10)||60)})}
+ else return;save();render()});
+render();
+</script>
+</body>
+</html>
